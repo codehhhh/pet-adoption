@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kmbeast.mapper.WarningRecordMapper">
+
+    <insert id="insert" parameterType="com.kmbeast.pojo.entity.WarningRecord" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO warning_record (
+            user_id, pet_id, questionnaire_id, warning_level,
+            reason, suggestion, status, processed_by, processed_time, create_time
+        ) VALUES (
+                     #{userId}, #{petId}, #{questionnaireId}, #{warningLevel},
+                     #{reason}, #{suggestion}, #{status}, #{processedBy}, #{processedTime}, #{createTime}
+                 )
+    </insert>
+
+    <update id="update" parameterType="com.kmbeast.pojo.entity.WarningRecord">
+        UPDATE warning_record
+        <set>
+            <if test="status != null">status = #{status},</if>
+            <if test="processedBy != null">processed_by = #{processedBy},</if>
+            <if test="processedTime != null">processed_time = #{processedTime},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <select id="selectById" resultType="com.kmbeast.pojo.vo.WarningRecordVO">
+        SELECT
+        wr.*,
+        u.username as userName,
+        u.phone,
+        p.name as petName
+        FROM warning_record wr
+        LEFT JOIN user u ON wr.user_id = u.id
+        LEFT JOIN pet p ON wr.pet_id = p.id
+        WHERE wr.id = #{id}
+    </select>
+
+    <select id="selectList" resultType="com.kmbeast.pojo.vo.WarningRecordVO">
+        SELECT
+        wr.*,
+        u.username as userName,
+        u.phone,
+        p.name as petName
+        FROM warning_record wr
+        LEFT JOIN user u ON wr.user_id = u.id
+        LEFT JOIN pet p ON wr.pet_id = p.id
+        <where>
+            <if test="userId != null">AND wr.user_id = #{userId}</if>
+            <if test="petId != null">AND wr.pet_id = #{petId}</if>
+            <if test="status != null">AND wr.status = #{status}</if>
+            <if test="warningLevel != null">AND wr.warning_level = #{warningLevel}</if>
+        </where>
+        ORDER BY wr.create_time DESC
+        <if test="current != null and size != null">
+            LIMIT #{offset}, #{size}
+        </if>
+    </select>
+
+    <select id="selectCount" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM warning_record
+        <where>
+            <if test="userId != null">AND user_id = #{userId}</if>
+            <if test="petId != null">AND pet_id = #{petId}</if>
+            <if test="status != null">AND status = #{status}</if>
+            <if test="warningLevel != null">AND warning_level = #{warningLevel}</if>
+        </where>
+    </select>
+
+    <select id="selectHighRiskUsers" resultType="com.kmbeast.pojo.vo.HighRiskUserVO">
+        SELECT
+        u.id as userId,
+        u.username as uerName,
+        u.phone,
+        COUNT(*) as warningCount,
+        MAX(wr.warning_level) as maxWarningLevel
+        FROM warning_record wr
+        INNER JOIN user u ON wr.user_id = u.id
+        WHERE wr.status = 1 AND wr.warning_level >= 2
+        GROUP BY wr.user_id
+        ORDER BY maxWarningLevel DESC, warningCount DESC
+        LIMIT #{limit}
+    </select>
+
+</mapper>

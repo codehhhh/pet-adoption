@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kmbeast.mapper.PetHealthRecordMapper">
+
+    <insert id="save">
+        INSERT INTO pet_health_record (pet_id, record_date, weight, height, body_condition, appetite, energy_level, notes, create_time)
+        VALUES (#{petId}, #{recordDate}, #{weight}, #{height}, #{bodyCondition}, #{appetite}, #{energyLevel}, #{notes}, #{createTime})
+    </insert>
+
+    <update id="update">
+        UPDATE pet_health_record
+        <set>
+            <if test="recordDate != null">record_date = #{recordDate},</if>
+            <if test="weight != null">weight = #{weight},</if>
+            <if test="height != null">height = #{height},</if>
+            <if test="bodyCondition != null">body_condition = #{bodyCondition},</if>
+            <if test="appetite != null">appetite = #{appetite},</if>
+            <if test="energyLevel != null">energy_level = #{energyLevel},</if>
+            <if test="notes != null and notes != ''">notes = #{notes},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM pet_health_record WHERE id = #{id}
+    </delete>
+
+    <select id="getById" resultMap="BaseResultMap">
+        SELECT phr.*,
+               p.name as pet_name,
+               p.cover as pet_cover,
+               u.username as owner_name,
+               u.avatar as owner_avatar
+        FROM pet_health_record phr
+                 LEFT JOIN pet p ON p.id = phr.pet_id
+                 LEFT JOIN pet_adopt_order pao ON pao.pet_id = p.id AND pao.status = 4
+                 LEFT JOIN user u ON u.id = pao.user_id
+        WHERE phr.id = #{id}
+    </select>
+
+    <select id="list" resultMap="BaseResultMap">
+        SELECT phr.*,
+        p.name as pet_name,
+        p.cover as pet_cover,
+        COALESCE(u.username, '未领养') as owner_name,
+        u.avatar as owner_avatar
+        FROM pet_health_record phr
+        LEFT JOIN pet p ON p.id = phr.pet_id
+        LEFT JOIN pet_adopt_order pao ON pao.pet_id = p.id AND pao.status = 4
+        LEFT JOIN user u ON u.id = pao.user_id
+        <where>
+            <!-- 如果是普通用户，只查询自己领养宠物的记录 -->
+            <if test="userId != null">
+                AND pao.user_id = #{userId}
+            </if>
+            <!-- 宠物名称筛选 -->
+            <if test="petName != null and petName != ''">
+                AND p.name LIKE CONCAT('%', #{petName}, '%')
+            </if>
+            <if test="petId != null">AND phr.pet_id = #{petId}</if>
+            <if test="bodyCondition != null">AND phr.body_condition = #{bodyCondition}</if>
+            <if test="appetite != null">AND phr.appetite = #{appetite}</if>
+            <if test="energyLevel != null">AND phr.energy_level = #{energyLevel}</if>
+            <if test="startDate != null and startDate != ''">
+                AND phr.record_date >= #{startDate}
+            </if>
+            <if test="endDate != null and endDate != ''">
+                AND phr.record_date &lt;= #{endDate}
+            </if>
+        </where>
+        ORDER BY phr.record_date DESC
+        <if test="current != null and size != null">
+            LIMIT #{current}, #{size}
+        </if>
+    </select>
+
+    <select id="listCount" resultType="integer">
+        SELECT COUNT(*)
+        FROM pet_health_record phr
+        LEFT JOIN pet p ON p.id = phr.pet_id
+        LEFT JOIN pet_adopt_order pao ON pao.pet_id = p.id AND pao.status = 4
+        <where>
+            <!-- 如果有宠物名称筛选 -->
+            <if test="petName != null and petName != ''">
+                AND p.name LIKE CONCAT('%', #{petName}, '%')
+            </if>
+            <if test="petId != null">AND phr.pet_id = #{petId}</if>
+            <if test="bodyCondition != null">AND phr.body_condition = #{bodyCondition}</if>
+            <if test="appetite != null">AND phr.appetite = #{appetite}</if>
+            <if test="energyLevel != null">AND phr.energy_level = #{energyLevel}</if>
+            <if test="startDate != null and startDate != ''">
+                AND phr.record_date >= #{startDate}
+            </if>
+            <if test="endDate != null and endDate != ''">
+                AND phr.record_date &lt;= #{endDate}
+            </if>
+        </where>
+    </select>
+
+    <select id="queryByPetId" resultMap="BaseResultMap">
+        SELECT phr.*,
+               p.name as pet_name,
+               p.cover as pet_cover,
+               u.username as owner_name,
+               u.avatar as owner_avatar
+        FROM pet_health_record phr
+                 LEFT JOIN pet p ON p.id = phr.pet_id
+                 LEFT JOIN pet_adopt_order pao ON pao.pet_id = p.id AND pao.status = 4
+                 LEFT JOIN user u ON u.id = pao.user_id
+        WHERE phr.pet_id = #{petId}
+        ORDER BY phr.record_date DESC
+    </select>
+
+    <select id="queryByUserId" resultMap="BaseResultMap">
+        SELECT phr.*,
+               p.name as pet_name,
+               p.cover as pet_cover,
+               u.username as owner_name,
+               u.avatar as owner_avatar
+        FROM pet_health_record phr
+                 LEFT JOIN pet p ON p.id = phr.pet_id
+                 LEFT JOIN pet_adopt_order pao ON pao.pet_id = p.id AND pao.status = 4
+                 LEFT JOIN user u ON u.id = pao.user_id
+        WHERE pao.user_id = #{userId}
+        ORDER BY phr.record_date DESC
+    </select>
+
+    <select id="queryAllForAdmin" resultMap="BaseResultMap">
+        SELECT phr.*,
+        p.name as pet_name,
+        p.cover as pet_cover,
+        COALESCE(u.username, '未领养') as owner_name,
+        u.avatar as owner_avatar
+        FROM pet_health_record phr
+        LEFT JOIN pet p ON p.id = phr.pet_id
+        LEFT JOIN pet_adopt_order pao ON pao.pet_id = p.id AND pao.status = 4
+        LEFT JOIN user u ON u.id = pao.user_id
+        <where>
+            <if test="petName != null and petName != ''">
+                AND p.name LIKE CONCAT('%', #{petName}, '%')
+            </if>
+            <if test="bodyCondition != null">AND phr.body_condition = #{bodyCondition}</if>
+            <if test="appetite != null">AND phr.appetite = #{appetite}</if>
+            <if test="energyLevel != null">AND phr.energy_level = #{energyLevel}</if>
+            <if test="startDate != null and startDate != ''">
+                AND phr.record_date >= #{startDate}
+            </if>
+            <if test="endDate != null and endDate != ''">
+                AND phr.record_date &lt;= #{endDate}
+            </if>
+        </where>
+        ORDER BY phr.record_date DESC
+        <if test="current != null and size != null">
+            LIMIT #{current}, #{size}
+        </if>
+    </select>
+
+    <select id="queryAllForAdminCount" resultType="integer">
+        SELECT COUNT(*)
+        FROM pet_health_record phr
+        LEFT JOIN pet p ON p.id = phr.pet_id
+        LEFT JOIN pet_adopt_order pao ON pao.pet_id = p.id AND pao.status = 4
+        <where>
+            <!-- 如果有宠物名称筛选 -->
+            <if test="petName != null and petName != ''">
+                AND p.name LIKE CONCAT('%', #{petName}, '%')
+            </if>
+            <if test="bodyCondition != null">AND phr.body_condition = #{bodyCondition}</if>
+            <if test="appetite != null">AND phr.appetite = #{appetite}</if>
+            <if test="energyLevel != null">AND phr.energy_level = #{energyLevel}</if>
+            <if test="startDate != null and startDate != ''">
+                AND phr.record_date >= #{startDate}
+            </if>
+            <if test="endDate != null and endDate != ''">
+                AND phr.record_date &lt;= #{endDate}
+            </if>
+        </where>
+    </select>
+
+    <resultMap id="BaseResultMap" type="com.kmbeast.pojo.vo.PetHealthRecordVO">
+        <id column="id" property="id"/>
+        <result column="pet_id" property="petId"/>
+        <result column="pet_name" property="petName"/>
+        <result column="pet_cover" property="petCover"/>
+        <result column="owner_name" property="ownerName"/>
+        <result column="owner_avatar" property="ownerAvatar"/>
+        <result column="record_date" property="recordDate"/>
+        <result column="weight" property="weight"/>
+        <result column="height" property="height"/>
+        <result column="body_condition" property="bodyCondition"/>
+        <result column="appetite" property="appetite"/>
+        <result column="energy_level" property="energyLevel"/>
+        <result column="notes" property="notes"/>
+        <result column="create_time" property="createTime"/>
+    </resultMap>
+
+</mapper>

@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kmbeast.mapper.PetAdoptOrderMapper">
+
+    <!-- 原有的list查询 -->
+    <select id="list" resultMap="BaseResultMap">
+        SELECT
+        pao.id,
+        pao.user_id,
+        pao.pet_id,
+        pao.address_id,
+        pao.detail,
+        pao.status,
+        pao.audit_error_detail,
+        pao.is_again_post,
+        pao.post_number,
+        pao.create_time,
+        u.username,
+        u.avatar,
+        p.name AS pet_name,
+        p.cover,
+        a.addressee,
+        a.concat_phone,
+        a.detail AS detail_address
+        FROM pet_adopt_order pao
+        LEFT JOIN user u ON u.id = pao.user_id
+        LEFT JOIN pet p ON p.id = pao.pet_id
+        LEFT JOIN address a ON a.id = pao.address_id
+        <where>
+            <if test="userId != null">
+                AND pao.user_id = #{userId}
+            </if>
+            <if test="petId != null">
+                AND pao.pet_id = #{petId}
+            </if>
+            <if test="status != null">
+                AND pao.status = #{status}
+            </if>
+            <if test="startTime != null and endTime != null">
+                AND pao.create_time BETWEEN #{startTime} AND #{endTime}
+            </if>
+        </where>
+        <if test="current != null and size != null">
+            LIMIT #{current},#{size}
+        </if>
+    </select>
+
+    <!-- 原有的listCount查询 -->
+    <select id="listCount" resultType="integer">
+        SELECT COUNT(*)
+        FROM pet_adopt_order pao
+        <where>
+            <if test="userId != null">
+                AND pao.user_id = #{userId}
+            </if>
+            <if test="petId != null">
+                AND pao.pet_id = #{petId}
+            </if>
+            <if test="status != null">
+                AND pao.status = #{status}
+            </if>
+            <if test="startTime != null and endTime != null">
+                AND pao.create_time BETWEEN #{startTime} AND #{endTime}
+            </if>
+        </where>
+    </select>
+
+    <!-- 原有的BaseResultMap -->
+    <resultMap id="BaseResultMap" type="com.kmbeast.pojo.vo.PetAdoptOrderVO">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="detail" property="detail"/>
+        <result column="addressee" property="addressee"/>
+        <result column="concat_phone" property="concatPhone"/>
+        <result column="status" property="status"/>
+        <result column="audit_error_detail" property="auditErrorDetail"/>
+        <result column="is_again_post" property="isAgainPost"/>
+        <result column="post_number" property="postNumber"/>
+        <result column="create_time" property="createTime"/>
+        <result column="username" property="username"/>
+        <result column="avatar" property="avatar"/>
+        <result column="pet_name" property="petName"/>
+        <result column="cover" property="cover"/>
+        <result column="detail_address" property="detailAddress"/>
+    </resultMap>
+
+    <!-- 统计已完成订单数量 -->
+    <select id="countCompletedOrdersByPetId" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM pet_adopt_order
+        WHERE pet_id = #{petId}
+          AND status = 4
+    </select>
+
+    <!-- 查询所有已完成领养的用户-宠物关系 -->
+    <select id="selectAdoptedUsers" resultType="com.kmbeast.pojo.vo.AdoptRelationVO">
+        SELECT
+            o.user_id as userId,
+            o.pet_id as petId,
+            u.username,
+            p.name as petName
+        FROM pet_adopt_order o
+                 LEFT JOIN user u ON o.user_id = u.id
+                 LEFT JOIN pet p ON o.pet_id = p.id
+        WHERE o.status = 4
+    </select>
+
+</mapper>

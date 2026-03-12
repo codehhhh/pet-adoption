@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kmbeast.mapper.WarningQuestionnaireMapper">
+
+    <insert id="insert" parameterType="com.kmbeast.pojo.entity.WarningQuestionnaire" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO warning_questionnaire (
+            user_id, pet_id, question_type, questions, answers,
+            score, warning_level, status, deadline, create_time, submit_time
+        ) VALUES (
+                     #{userId}, #{petId}, #{questionType}, #{questions}, #{answers},
+                     #{score}, #{warningLevel}, #{status}, #{deadline}, #{createTime}, #{submitTime}
+                 )
+    </insert>
+
+    <update id="updateById" parameterType="com.kmbeast.pojo.entity.WarningQuestionnaire">
+        UPDATE warning_questionnaire
+        <set>
+            <if test="answers != null">answers = #{answers},</if>
+            <if test="score != null">score = #{score},</if>
+            <if test="warningLevel != null">warning_level = #{warningLevel},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="submitTime != null">submit_time = #{submitTime},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <select id="selectVoById" resultType="com.kmbeast.pojo.vo.WarningQuestionnaireVO">
+        SELECT
+            wq.*,
+            u.username as userName,
+            u.phone,
+            p.name as petName,
+            p.cover as petAvatar
+        FROM warning_questionnaire wq
+                 LEFT JOIN user u ON wq.user_id = u.id
+                 LEFT JOIN pet p ON wq.pet_id = p.id
+        WHERE wq.id = #{id}
+    </select>
+
+    <select id="selectEntityById" resultType="com.kmbeast.pojo.entity.WarningQuestionnaire">
+        SELECT
+            id, user_id, pet_id, question_type, questions, answers,
+            score, warning_level, status, create_time, deadline, submit_time
+        FROM warning_questionnaire
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectListByDto" resultType="com.kmbeast.pojo.vo.WarningQuestionnaireVO">
+        SELECT
+        wq.*,
+        u.username as userName,
+        p.name as petName
+        FROM warning_questionnaire wq
+        LEFT JOIN user u ON wq.user_id = u.id
+        LEFT JOIN pet p ON wq.pet_id = p.id
+        <where>
+            <if test="dto.userId != null">
+                AND wq.user_id = #{dto.userId}
+            </if>
+            <if test="dto.status != null">
+                AND wq.status = #{dto.status}
+            </if>
+            <if test="dto.petId != null">
+                AND wq.pet_id = #{dto.petId}
+            </if>
+        </where>
+        ORDER BY wq.create_time DESC
+        <if test="dto.size != null and dto.offset != null">
+            LIMIT #{dto.size} OFFSET #{dto.offset}
+        </if>
+    </select>
+
+    <select id="selectCountByAdmin" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM warning_questionnaire wq
+        LEFT JOIN user u ON wq.user_id = u.id
+        LEFT JOIN pet p ON wq.pet_id = p.id
+        <where>
+            <if test="dto.userId != null">
+                AND wq.user_id = #{dto.userId}
+            </if>
+            <if test="dto.petId != null">
+                AND wq.pet_id = #{dto.petId}
+            </if>
+            <if test="dto.status != null">
+                AND wq.status = #{dto.status}
+            </if>
+            <if test="dto.questionType != null">
+                AND wq.question_type = #{dto.questionType}
+            </if>
+            <if test="dto.warningLevel != null">
+                AND wq.warning_level = #{dto.warningLevel}
+            </if>
+            <if test="dto.username != null and dto.username != ''">
+                AND u.username LIKE CONCAT('%', #{dto.username}, '%')
+            </if>
+            <if test="dto.petName != null and dto.petName != ''">
+                AND p.name LIKE CONCAT('%', #{dto.petName}, '%')
+            </if>
+        </where>
+    </select>
+
+    <select id="selectPendingByUserId" resultType="com.kmbeast.pojo.vo.WarningQuestionnaireVO">
+        SELECT
+            wq.*,
+            p.name as petName,
+            p.cover as petAvatar
+        FROM warning_questionnaire wq
+                 LEFT JOIN pet p ON wq.pet_id = p.id
+        WHERE wq.user_id = #{userId}
+          AND wq.status = 1
+          AND wq.deadline > NOW()
+        ORDER BY wq.deadline ASC
+    </select>
+
+    <select id="selectAllByAdmin" resultType="com.kmbeast.pojo.vo.WarningQuestionnaireVO">
+        SELECT
+        wq.*,
+        u.username as userName,
+        u.phone,
+        p.name as petName,
+        p.cover as petAvatar
+        FROM warning_questionnaire wq
+        LEFT JOIN user u ON wq.user_id = u.id
+        LEFT JOIN pet p ON wq.pet_id = p.id
+        <where>
+            <if test="dto.userId != null">AND wq.user_id = #{dto.userId}</if>
+            <if test="dto.petId != null">AND wq.pet_id = #{dto.petId}</if>
+            <if test="dto.status != null">AND wq.status = #{dto.status}</if>
+            <if test="dto.questionType != null">AND wq.question_type = #{dto.questionType}</if>
+            <if test="dto.warningLevel != null">AND wq.warning_level = #{dto.warningLevel}</if>
+            <if test="dto.username != null and dto.username != ''">
+                AND u.username LIKE CONCAT('%', #{dto.username}, '%')
+            </if>
+            <if test="dto.petName != null and dto.petName != ''">
+                AND p.name LIKE CONCAT('%', #{dto.petName}, '%')
+            </if>
+        </where>
+        ORDER BY wq.create_time DESC
+        <if test="dto.current != null and dto.size != null">
+            LIMIT #{dto.offset}, #{dto.size}
+        </if>
+    </select>
+
+    <select id="selectStatsByAdmin" resultType="com.kmbeast.pojo.vo.QuestionnaireStatsVO">
+        SELECT
+            COUNT(*) as totalQuestionnaires,
+            SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) as pendingCount,
+            SUM(CASE WHEN status = 2 THEN 1 ELSE 0 END) as completedCount,
+            SUM(CASE WHEN warning_level > 0 THEN 1 ELSE 0 END) as riskCount,
+            AVG(score) as avgScore
+        FROM warning_questionnaire
+    </select>
+
+    <select id="selectRiskLevelStats" resultType="com.kmbeast.pojo.vo.RiskLevelStatsVO">
+        SELECT
+            warning_level as level,
+            COUNT(*) as count
+        FROM warning_questionnaire
+        WHERE warning_level > 0
+        GROUP BY warning_level
+    </select>
+
+    <!-- 获取可发放问卷的用户列表（已完成领养且无待回答问卷） -->
+    <select id="selectAvailableUsers" resultType="com.kmbeast.pojo.vo.AvailableUserVO">
+        SELECT
+            u.id as userId,
+            u.username as userName,
+            p.id as petId,
+            p.name as petName,
+            0 as warningLevel,
+            pao.create_time as adoptTime
+        FROM pet_adopt_order pao
+                 INNER JOIN user u ON pao.user_id = u.id
+                 INNER JOIN pet p ON pao.pet_id = p.id
+        WHERE pao.status = 4
+        ORDER BY pao.create_time DESC
+    </select>
+    
+    <select id="checkMonthlySent" resultType="java.lang.Boolean">
+        SELECT COUNT(*) > 0
+        FROM warning_questionnaire
+        WHERE user_id = #{userId}
+          AND pet_id = #{petId}
+          AND question_type = #{type}
+          AND DATE_FORMAT(create_time, '%Y%m') = DATE_FORMAT(NOW(), '%Y%m')
+    </select>
+</mapper>
